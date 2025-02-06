@@ -1,20 +1,21 @@
 using AdaptiveProposals, Distributions, Parameters
 import Distributions: logpdf
 
-# A made-up data generating model
+# Get some made-up data.
 data = rand(MixtureModel([Normal(0, 2.4), Exponential(1.6)]), 1000);
 data[1:10]
 
-# Likelihood
-lhood(θ, data) = loglikelihood(MixtureModel([Normal(θ.μ, θ.σ), Exponential(θ.λ)]), data)
+# Define a likelihood model (it is the data generating model).
+# We have three parameters: μ, σ and λ.
+lhood(θ, data) = loglikelihood(MixtureModel([Normal(θ.μ, θ.σ), Exponential(θ.λ)]), data);
 
-# Prior
-prior(θ) = logpdf(Normal(), θ.μ) + logpdf(Exponential(5), θ.σ) + logpdf(Exponential(2), θ.λ)
+# Define some prior:
+prior(θ) = logpdf(Normal(), θ.μ) + logpdf(Exponential(5), θ.σ) + logpdf(Exponential(2), θ.λ);
 
-# Posterior up to a normalizing constant
-post(θ, data) = prior(θ) + lhood(θ, data)
+# ... and then the posterior up to a normalizing constant:
+post(θ, data) = prior(θ) + lhood(θ, data);
 
-# MCMC function, using Metropolis-within-Gibbs
+# Here's and MCMC algorithm, using Metropolis-within-Gibbs
 function mcmc(n, θ, data, proposals)
     π  = post(θ, data)
     x  = (θ, π)
@@ -36,19 +37,19 @@ function mcmc(n, θ, data, proposals)
         xs[i] = (θ, π)
     end
     return xs
-end
+end;
 
-# Try it out
+# Let's try it out. Define the proposal functions, one for each parameter.
 proposals = (
     μ=AdaptiveProposal(), 
     σ=PositiveProposal(),  # σ ∈ ℝ+ 
     λ=PositiveProposal()   # λ ∈ ℝ+
 )
 
-# These are the proposal kernels:
+# These are the proposal densities (kernels):
 map(proposal->proposal.kernel, proposals)
 
-# Do the MCMC
+# Do the MCMC:
 out = mcmc(10000, (μ=1.0, σ=3.0, λ=0.2), data, proposals);
 
 # Check whether it makes sense:
@@ -56,3 +57,4 @@ map(k->mean(map(x->getfield(x[1], k), out)), [:μ, :σ, :λ])
 
 # The kernels have been adapting:
 map(proposal->proposal.kernel, proposals)
+

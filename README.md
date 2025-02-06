@@ -7,7 +7,7 @@ using AdaptiveProposals, Distributions, Parameters
 import Distributions: logpdf
 ````
 
-A made-up data generating model
+Get some made-up data.
 
 ````julia
 data = rand(MixtureModel([Normal(0, 2.4), Exponential(1.6)]), 1000);
@@ -16,49 +16,38 @@ data[1:10]
 
 ````
 10-element Vector{Float64}:
-  0.12816376552104622
- -2.490551654111598
- -7.296960665986657
-  0.41401835767665
- -0.5901497122609962
-  0.23898197008583347
-  0.12008970277615286
-  0.47895130269355957
- -0.316291856158849
-  0.5983797389277226
+  0.324469051967057
+  2.816562623155402
+ -2.23041581032082
+ -2.9675288011196974
+  0.17830696630396375
+ -5.537938077992835
+  0.31817677428273505
+  0.740301548669381
+  2.202501105492761
+  4.377902039469137
 ````
 
-Likelihood
-
-````julia
-lhood(θ, data) = loglikelihood(MixtureModel([Normal(θ.μ, θ.σ), Exponential(θ.λ)]), data)
-````
-
-````
-lhood (generic function with 1 method)
-````
-
-Prior
+Define a likelihood model (it is the data generating model).
+We have three parameters: μ, σ and λ.
 
 ````julia
-prior(θ) = logpdf(Normal(), θ.μ) + logpdf(Exponential(5), θ.σ) + logpdf(Exponential(2), θ.λ)
+lhood(θ, data) = loglikelihood(MixtureModel([Normal(θ.μ, θ.σ), Exponential(θ.λ)]), data);
 ````
 
-````
-prior (generic function with 1 method)
-````
-
-Posterior up to a normalizing constant
+Define some prior:
 
 ````julia
-post(θ, data) = prior(θ) + lhood(θ, data)
+prior(θ) = logpdf(Normal(), θ.μ) + logpdf(Exponential(5), θ.σ) + logpdf(Exponential(2), θ.λ);
 ````
 
-````
-post (generic function with 1 method)
+... and then the posterior up to a normalizing constant:
+
+````julia
+post(θ, data) = prior(θ) + lhood(θ, data);
 ````
 
-MCMC function, using Metropolis-within-Gibbs
+Here's and MCMC algorithm, using Metropolis-within-Gibbs
 
 ````julia
 function mcmc(n, θ, data, proposals)
@@ -82,14 +71,10 @@ function mcmc(n, θ, data, proposals)
         xs[i] = (θ, π)
     end
     return xs
-end
+end;
 ````
 
-````
-mcmc (generic function with 1 method)
-````
-
-Try it out
+Let's try it out. Define the proposal functions, one for each parameter.
 
 ````julia
 proposals = (
@@ -136,7 +121,7 @@ proposals = (
 )
 ````
 
-These are the proposal kernels:
+These are the proposal densities (kernels):
 
 ````julia
 map(proposal->proposal.kernel, proposals)
@@ -146,7 +131,7 @@ map(proposal->proposal.kernel, proposals)
 (μ = Normal{Float64}(μ=0.0, σ=1.0), σ = Normal{Float64}(μ=0.0, σ=1.0), λ = Normal{Float64}(μ=0.0, σ=1.0))
 ````
 
-Do the MCMC
+Do the MCMC:
 
 ````julia
 out = mcmc(10000, (μ=1.0, σ=3.0, λ=0.2), data, proposals);
@@ -160,9 +145,9 @@ map(k->mean(map(x->getfield(x[1], k), out)), [:μ, :σ, :λ])
 
 ````
 3-element Vector{Float64}:
- -0.29506293930177
-  2.3599536132454513
-  1.7065432577084365
+ 0.1395503626963868
+ 2.5431243656053755
+ 1.462259812138308
 ````
 
 The kernels have been adapting:
@@ -172,7 +157,7 @@ map(proposal->proposal.kernel, proposals)
 ````
 
 ````
-(μ = Normal{Float64}(μ=0.0, σ=0.41443469974779795), σ = Normal{Float64}(μ=0.0, σ=0.14076051803250902), λ = Normal{Float64}(μ=0.0, σ=0.1350493588505622))
+(μ = Normal{Float64}(μ=0.0, σ=0.31809099463761914), σ = Normal{Float64}(μ=0.0, σ=0.13489077762567608), λ = Normal{Float64}(μ=0.0, σ=0.13383978521186746))
 ````
 
 ---
