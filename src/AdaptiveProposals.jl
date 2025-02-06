@@ -14,7 +14,7 @@ An adaptive Univariate proposal kernel, assumes the support is ℝ.
 """
 @with_kw mutable struct AdaptiveProposal{T,V,W} 
     kernel      ::T       = Normal()
-    trans       ::V       = identity()
+    trans       ::V       = identity
     invtrans    ::W       = inverse(trans)
     tuneinterval::Int64   = 25
     total       ::Int64   = 0
